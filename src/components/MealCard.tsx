@@ -39,10 +39,11 @@ export default function MealCard(props: MealCardProps) {
 
   const d = dish as any;
   const title = getSafeTitle(d, lang);
-  // 直接使用菜品对象中精准配置的专属图片
+
+  // 关键：直接读取菜品绑定的真实美食图片，绝不经过任何正则模糊匹配
   const imageUrl = d.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
   const prepTime = d.prep_time || '20 mins';
-  const cuisine = d.cuisine || 'Home Cooking';
+  const cuisine = typeof d.cuisine === 'object' ? (d.cuisine[lang] || 'Home Cooking') : (d.cuisine || 'Home Cooking');
 
   const handleCardClick = () => {
     const fn = props.onSelect || props.onSelectDish || props.onClick;
