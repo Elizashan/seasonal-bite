@@ -2,8 +2,9 @@ import React from 'react';
 import { Clock, RotateCcw, Utensils } from 'lucide-react';
 import type { Dish, Lang, ViewMode } from '@/types/recipe';
 import { tr } from '@/lib/i18n';
+import { matchCulinaryImage } from '@/lib/imageLibrary';
 
-export interface MealCardProps {
+interface MealCardProps {
   dish: Dish | null;
   lang: Lang;
   viewMode: ViewMode;
@@ -16,18 +17,12 @@ export interface MealCardProps {
   onRerollSlot?: (dayIdx: number, mealIdx: number) => void;
 }
 
-export function getSafeTitle(dish: Dish | null, lang: Lang): string {
-  if (!dish) return '';
+export function getSafeTitle(d: any, lang: Lang): string {
+  if (!d) return '';
   if (lang === 'en') {
-    if (dish.title_en) return dish.title_en;
-    if (typeof dish.title === 'object' && dish.title?.en) return dish.title.en;
-    return typeof dish.title === 'string' ? dish.title : 'Seasonal Dish';
+    return d.title_en || (typeof d.title === 'object' ? d.title?.en : '') || 'Artisanal Dish';
   }
-  if (dish.title_zh) return dish.title_zh;
-  if (typeof dish.title === 'object') {
-    return dish.title?.zhTW || dish.title?.zhCN || dish.title?.zh || dish.title?.en || '時令料理';
-  }
-  return typeof dish.title === 'string' ? dish.title : '時令料理';
+  return d.title_zh || (typeof d.title === 'object' ? (d.title?.zhTW || d.title?.zhCN || d.title?.zh) : '') || '時令料理';
 }
 
 export default function MealCard(props: MealCardProps) {
@@ -43,7 +38,17 @@ export default function MealCard(props: MealCardProps) {
     );
   }
 
-  const title = getSafeTitle(dish, lang);
+  const d = dish as any;
+  const title = getSafeTitle(d, lang);
+  const mealType = d.meal_type || 'lunch';
+
+  // 严格使用匹配出的食物高清大图
+  const imageUrl = d.image_url && !d.image_url.includes('placeholder')
+    ? d.image_url
+    : matchCulinaryImage(d.title_zh || '', d.title_en || '', mealType);
+
+  const prepTime = d.prep_time || '20 mins';
+  const cuisine = typeof d.cuisine === 'object' ? (d.cuisine[lang] || 'Home Cooking') : (d.cuisine || 'Home Cooking');
 
   const handleCardClick = () => {
     const fn = props.onSelect || props.onSelectDish || props.onClick;
@@ -73,7 +78,7 @@ export default function MealCard(props: MealCardProps) {
       {viewMode === 'photo' && (
         <div className="relative h-28 w-full overflow-hidden bg-cream-100">
           <img
-            src={dish.image_url}
+            src={imageUrl}
             alt={title}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
             loading="lazy"
@@ -97,17 +102,17 @@ export default function MealCard(props: MealCardProps) {
         <div className="flex items-center justify-between text-xs text-timber-400">
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
-            {dish.prep_time}
+            {prepTime}
           </span>
           <span className="flex items-center gap-1">
             <Utensils className="h-3 w-3" />
-            {dish.cuisine}
+            {cuisine}
           </span>
         </div>
 
-        {dish.dietary_tags && dish.dietary_tags.length > 0 && (
+        {Array.isArray(d.dietary_tags) && d.dietary_tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {dish.dietary_tags.slice(0, 2).map((tag, idx) => (
+            {d.dietary_tags.slice(0, 2).map((tag: any, idx: number) => (
               <span
                 key={idx}
                 className="rounded-md bg-forest-50 px-1.5 py-0.5 text-[10px] font-medium text-forest-600 border border-forest-100"

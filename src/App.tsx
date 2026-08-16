@@ -1,4 +1,3 @@
-import { generateSeasonalWeeklyPlan } from '@/lib/dynamicGenerator';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Sprout, Loader2, Share2 } from 'lucide-react';
 import type {
@@ -10,8 +9,9 @@ import type {
   ViewMode,
   WeekPlan,
 } from '@/types/recipe';
+import { dishMatchesRestrictions } from '@/lib/restrictions';
 import { tr } from '@/lib/i18n';
-import { detectUserSeason } from '@/lib/season';
+import { generateSeasonalWeeklyPlan } from '@/lib/dynamicGenerator';
 import Navbar from '@/components/Navbar';
 import FilterBar from '@/components/FilterBar';
 import WeeklyGrid from '@/components/WeeklyGrid';
@@ -25,88 +25,112 @@ const VALID_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => {
     try {
-      return (localStorage.getItem('lang') as Lang) || 'zhTW';
+      return (localStorage.getItem('lang_v3') as Lang) || 'zhTW';
     } catch {
       return 'zhTW';
     }
   });
 
-  // 自动检测用户所在地的真实季节（区分南北半球）
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
-      const saved = localStorage.getItem('theme');
-      if (VALID_SEASONS.includes(saved as any)) return saved as ThemeMode;
-      return detectUserSeason();
+      const saved = localStorage.getItem('theme_v3');
+      return VALID_SEASONS.includes(saved as any) ? (saved as ThemeMode) : 'spring';
     } catch {
-      return detectUserSeason();
+      return 'spring';
     }
   });
 
-  const [activeTags, setActiveTags] = useState<Set<DietaryTag>>(new Set(['seasonal_produce' as DietaryTag]));
+  const [activeTags, setActiveTags] = useState<Set<DietaryTag>>(new Set(['seasonal_produce']));
   const [selectedRestrictions, setSelectedRestrictions] = useState<Set<RestrictionCode>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('photo');
 
-  const [plan, setPlan] = useState<WeekPlan>(() => Array.from({ length: 7 }, () => [null, null, null]));
-  const [hasGenerated, setHasGenerated] = useState<boolean>(false);
+  // 使用全新的 key 隔离旧的脏数据缓存
+  const [plan, setPlan] = useState<WeekPlan>(() => {
+    try {
+      const saved = localStorage.getItem('seasonal_plan_clean_v3');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === 7) return parsed;
+      }
+    } catch {}
+    return Array.from({ length: 7 }, () => [null, null, null]);
+  });
+
+  const [hasGenerated, setHasGenerated] = useState<boolean>(() =>
+    plan.some((day) => Array.isArray(day) && day.some((d) => d !== null))
+  );
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
   const [showExport, setShowExport] = useState(false);
   const [showAICreate, setShowAICreate] = useState(false);
 
   useEffect(() => {
-    try { localStorage.setItem('lang', lang); } catch {}
+    try { localStorage.setItem('lang_v3', lang); } catch {}
   }, [lang]);
 
   useEffect(() => {
-    try { localStorage.setItem('theme', theme); } catch {}
+    try { localStorage.setItem('theme_v3', theme); } catch {}
   }, [theme]);
 
-  // 点击“生成新鮮每週菜單”：调用 AI 实时生成 21 道时令菜品
+  useEffect(() => {
+    try {
+      if (plan.some((day) => Array.isArray(day) && day.some((d) => d !== null))) {
+        localStorage.setItem('seasonal_plan_clean_v3', JSON.stringify(plan));
+        setHasGenerated(true);
+      }
+    } catch {}
+  }, [plan]);
+
+  // 点击生成：100% 触发全新状态重排与图文重绘
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     try {
       const newPlan = await generateSeasonalWeeklyPlan(theme, lang, selectedRestrictions);
       if (Array.isArray(newPlan) && newPlan.length === 7) {
-        // 创建全新引用触发 React 完整重绘
-        setPlan([...newPlan]);
+        // 解构数组强制 React 触发全量重绘
+        setPlan([...newPlan.map((day) => [...day])]);
         setHasGenerated(true);
-        localStorage.setItem('seasonal_weekly_plan', JSON.stringify(newPlan));
       }
     } catch (err) {
-      console.error('Failed to generate plan:', err);
+      console.error('Failed to generate weekly plan:', err);
     } finally {
       setIsGenerating(false);
     }
   }, [theme, lang, selectedRestrictions]);
 
-  // 首次载入自动根据时令生成第一套菜单
-  useEffect(() => {
-    handleGenerate();
-  }, []);
-
+  // 单餐重抽
   const handleRerollSlot = useCallback(
     async (dayIdx: number, mealIdx: number) => {
-      const newPlanChunk = await generateSeasonalWeeklyPlan(theme, lang, selectedRestrictions);
-      const randomDay = Math.floor(Math.random() * 7);
-      const newDish = newPlanChunk[randomDay][mealIdx];
-
-      setPlan((prev) => {
-        const next = prev.map((day) => [...day]);
-        if (next[dayIdx]) next[dayIdx][mealIdx] = newDish;
-        return next;
-      });
+      try {
+        const freshPlan = await generateSeasonalWeeklyPlan(theme, lang, selectedRestrictions);
+        const candidate = freshPlan[dayIdx]?.[mealIdx];
+        if (candidate) {
+          setPlan((prev) => {
+            const next = prev.map((day) => [...day]);
+            if (next[dayIdx]) next[dayIdx][mealIdx] = candidate;
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error('Reroll failed:', err);
+      }
     },
-    [theme, lang, selectedRestrictions],
+    [theme, lang, selectedRestrictions]
   );
 
   const handleAddAIDish = useCallback(async (dish: Dish, dayIdx: number, mealIdx: number) => {
+    const mealTypes = ['breakfast', 'lunch', 'dinner'] as const;
+    const mealType = mealTypes[mealIdx];
+    const customized: Dish = { ...dish, meal_type: mealType, season: theme };
+
     setPlan((prev) => {
       const newPlan = prev.map((day) => [...day]);
-      if (newPlan[dayIdx]) newPlan[dayIdx][mealIdx] = dish;
+      if (newPlan[dayIdx]) newPlan[dayIdx][mealIdx] = customized;
       return newPlan;
     });
     setHasGenerated(true);
-  }, []);
+  }, [theme]);
 
   const toggleTag = useCallback((tag: DietaryTag) => {
     setActiveTags((prev) => {
@@ -145,7 +169,10 @@ export default function App() {
               </span>
             </div>
             <h1 className="font-serif text-4xl font-bold leading-tight text-forest-600 sm:text-5xl lg:text-6xl">
-              {tr('brand', lang)} <span className="text-forest-300">|</span> <span className="text-gold-500" style={{ fontFamily: '"LXGW WenKai TC", "Noto Serif TC", serif' }}>{tr('brandSub', lang)}</span>
+              {tr('brand', lang)} <span className="text-forest-300">|</span>{' '}
+              <span className="text-gold-500" style={{ fontFamily: '"LXGW WenKai TC", "Noto Serif TC", serif' }}>
+                {tr('brandSub', lang)}
+              </span>
             </h1>
             <p className="mx-auto mt-4 max-w-xl font-serif text-lg italic text-timber-400">
               {tr('tagline', lang)}
