@@ -16,6 +16,20 @@ interface MealCardProps {
   onRerollSlot?: (dayIdx: number, mealIdx: number) => void;
 }
 
+export function getSafeTitle(dish: Dish | null, lang: Lang): string {
+  if (!dish) return '';
+  if (lang === 'en') {
+    if (dish.title_en) return dish.title_en;
+    if (typeof dish.title === 'object' && dish.title?.en) return dish.title.en;
+    return typeof dish.title === 'string' ? dish.title : 'Seasonal Dish';
+  }
+  if (dish.title_zh) return dish.title_zh;
+  if (typeof dish.title === 'object') {
+    return dish.title?.zhTW || dish.title?.zhCN || dish.title?.zh || dish.title?.en || '時令料理';
+  }
+  return typeof dish.title === 'string' ? dish.title : '時令料理';
+}
+
 export default function MealCard(props: MealCardProps) {
   const { dish, lang, viewMode, dayIdx, mealIdx } = props;
 
@@ -29,8 +43,7 @@ export default function MealCard(props: MealCardProps) {
     );
   }
 
-  const title = lang === 'en' ? (dish.title_en || 'Artisanal Dish') : (dish.title_zh || '時令料理');
-  // 直接渲染菜品绑定的精准专属图片，绝不再经过任何正则或模糊推导
+  const title = getSafeTitle(dish, lang);
   const imageUrl = dish.image_url;
   const prepTime = dish.prep_time || '20 mins';
   const cuisine = dish.cuisine || 'Home Cooking';
