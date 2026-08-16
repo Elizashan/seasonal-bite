@@ -12,11 +12,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const env = process.env;
-  const apiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY;
-
+  const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'Missing GEMINI_API_KEY on Vercel environment' });
+    return res.status(500).json({ error: 'API Key missing on Vercel environment' });
   }
 
   const { season = 'spring', lang = 'zhTW', restrictions = [] } = req.body || {};
