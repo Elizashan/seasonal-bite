@@ -1,3 +1,4 @@
+import { generateSeasonalWeeklyPlan } from '@/lib/dynamicGenerator';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Sprout, Loader2, Share2 } from 'lucide-react';
 import type {
@@ -11,7 +12,6 @@ import type {
 } from '@/types/recipe';
 import { tr } from '@/lib/i18n';
 import { detectUserSeason } from '@/lib/season';
-import { generateSeasonalWeeklyPlan } from '@/lib/dynamicGenerator';
 import Navbar from '@/components/Navbar';
 import FilterBar from '@/components/FilterBar';
 import WeeklyGrid from '@/components/WeeklyGrid';
@@ -61,17 +61,17 @@ export default function App() {
     try { localStorage.setItem('theme', theme); } catch {}
   }, [theme]);
 
-  // 点击触发动态 AI 生成全周时令菜谱
+  // 点击“生成新鮮每週菜單”：调用 AI 实时生成 21 道时令菜品
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
     try {
       const newPlan = await generateSeasonalWeeklyPlan(theme, lang, selectedRestrictions);
-      if (newPlan && newPlan.length === 7) {
+      if (Array.isArray(newPlan) && newPlan.length === 7) {
         setPlan(newPlan);
         setHasGenerated(true);
       }
     } catch (err) {
-      console.error('Failed to generate weekly plan:', err);
+      console.error('Failed to generate weekly plan with AI:', err);
     } finally {
       setIsGenerating(false);
     }
