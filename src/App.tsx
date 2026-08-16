@@ -67,11 +67,13 @@ export default function App() {
     try {
       const newPlan = await generateSeasonalWeeklyPlan(theme, lang, selectedRestrictions);
       if (Array.isArray(newPlan) && newPlan.length === 7) {
-        setPlan(newPlan);
+        // 创建全新引用触发 React 完整重绘
+        setPlan([...newPlan]);
         setHasGenerated(true);
+        localStorage.setItem('seasonal_weekly_plan', JSON.stringify(newPlan));
       }
     } catch (err) {
-      console.error('Failed to generate weekly plan with AI:', err);
+      console.error('Failed to generate plan:', err);
     } finally {
       setIsGenerating(false);
     }
