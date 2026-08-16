@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Sprout, Loader2, Share2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Sprout, Share2 } from 'lucide-react';
 import type {
   DietaryTag,
   Dish,
@@ -9,9 +9,8 @@ import type {
   ViewMode,
   WeekPlan,
 } from '@/types/recipe';
-import { dishMatchesRestrictions } from '@/lib/restrictions';
 import { tr } from '@/lib/i18n';
-import { generateSeasonalWeeklyPlan } from '@/lib/dynamicGenerator';
+import { generateShuffledWeeklyPlan } from '@/lib/verifiedRecipes';
 import Navbar from '@/components/Navbar';
 import FilterBar from '@/components/FilterBar';
 import WeeklyGrid from '@/components/WeeklyGrid';
@@ -25,7 +24,7 @@ const VALID_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => {
     try {
-      return (localStorage.getItem('lang_v3') as Lang) || 'zhTW';
+      return (localStorage.getItem('lang_clean_v4') as Lang) || 'zhTW';
     } catch {
       return 'zhTW';
     }
@@ -33,7 +32,7 @@ export default function App() {
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
-      const saved = localStorage.getItem('theme_v3');
+      const saved = localStorage.getItem('theme_clean_v4');
       return VALID_SEASONS.includes(saved as any) ? (saved as ThemeMode) : 'spring';
     } catch {
       return 'spring';
@@ -44,76 +43,56 @@ export default function App() {
   const [selectedRestrictions, setSelectedRestrictions] = useState<Set<RestrictionCode>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('photo');
 
-  // 使用全新的 key 隔离旧的脏数据缓存
-  const [plan, setPlan] = useState<WeekPlan>(() => {
+  // 清除所有历史旧版本的冲突缓存
+  useEffect(() => {
     try {
-      const saved = localStorage.getItem('seasonal_plan_clean_v3');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === 7) return parsed;
-      }
+      localStorage.removeItem('seasonal_weekly_plan');
+      localStorage.removeItem('seasonal_weekly_plan_v2');
+      localStorage.removeItem('seasonal_plan_clean_v3');
     } catch {}
-    return Array.from({ length: 7 }, () => [null, null, null]);
-  });
+  }, []);
 
-  const [hasGenerated, setHasGenerated] = useState<boolean>(() =>
-    plan.some((day) => Array.isArray(day) && day.some((d) => d !== null))
+  // 默认即时生成一组全周 21 餐零重复、图文对齐的菜单
+  const [plan, setPlan] = useState<WeekPlan>(() =>
+    generateShuffledWeeklyPlan(theme, lang, selectedRestrictions)
   );
 
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState<boolean>(true);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
-  const [showExport, setShowExport] = useState(false);
-  const [showAICreate, setShowAICreate] = useState(false);
+  const [showExport, setShowExport] = useState<boolean>(false);
+  const [showAICreate, setShowAICreate] = useState<boolean>(false);
 
   useEffect(() => {
-    try { localStorage.setItem('lang_v3', lang); } catch {}
+    try { localStorage.setItem('lang_clean_v4', lang); } catch {}
   }, [lang]);
 
   useEffect(() => {
-    try { localStorage.setItem('theme_v3', theme); } catch {}
+    try { localStorage.setItem('theme_clean_v4', theme); } catch {}
   }, [theme]);
 
-  useEffect(() => {
-    try {
-      if (plan.some((day) => Array.isArray(day) && day.some((d) => d !== null))) {
-        localStorage.setItem('seasonal_plan_clean_v3', JSON.stringify(plan));
-        setHasGenerated(true);
-      }
-    } catch {}
-  }, [plan]);
-
-  // 点击生成：100% 触发全新状态重排与图文重绘
-  const handleGenerate = useCallback(async () => {
+  // 点击生成按钮：100% 触发全新洗牌并强刷 UI
+  const handleGenerate = useCallback(() => {
     setIsGenerating(true);
-    try {
-      const newPlan = await generateSeasonalWeeklyPlan(theme, lang, selectedRestrictions);
-      if (Array.isArray(newPlan) && newPlan.length === 7) {
-        // 解构数组强制 React 触发全量重绘
-        setPlan([...newPlan.map((day) => [...day])]);
-        setHasGenerated(true);
-      }
-    } catch (err) {
-      console.error('Failed to generate weekly plan:', err);
-    } finally {
+    setTimeout(() => {
+      const freshPlan = generateShuffledWeeklyPlan(theme, lang, selectedRestrictions);
+      setPlan([...freshPlan.map((day) => [...day])]);
+      setHasGenerated(true);
       setIsGenerating(false);
-    }
+    }, 200);
   }, [theme, lang, selectedRestrictions]);
 
   // 单餐重抽
   const handleRerollSlot = useCallback(
-    async (dayIdx: number, mealIdx: number) => {
-      try {
-        const freshPlan = await generateSeasonalWeeklyPlan(theme, lang, selectedRestrictions);
-        const candidate = freshPlan[dayIdx]?.[mealIdx];
-        if (candidate) {
-          setPlan((prev) => {
-            const next = prev.map((day) => [...day]);
-            if (next[dayIdx]) next[dayIdx][mealIdx] = candidate;
-            return next;
-          });
-        }
-      } catch (err) {
-        console.error('Reroll failed:', err);
+    (dayIdx: number, mealIdx: number) => {
+      const freshPlan = generateShuffledWeeklyPlan(theme, lang, selectedRestrictions);
+      const candidate = freshPlan[dayIdx]?.[mealIdx];
+      if (candidate) {
+        setPlan((prev) => {
+          const next = prev.map((day) => [...day]);
+          if (next[dayIdx]) next[dayIdx][mealIdx] = candidate;
+          return next;
+        });
       }
     },
     [theme, lang, selectedRestrictions]

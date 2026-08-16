@@ -2,7 +2,6 @@ import React from 'react';
 import { Clock, RotateCcw, Utensils } from 'lucide-react';
 import type { Dish, Lang, ViewMode } from '@/types/recipe';
 import { tr } from '@/lib/i18n';
-import { matchCulinaryImage } from '@/lib/imageLibrary';
 
 interface MealCardProps {
   dish: Dish | null;
@@ -40,15 +39,10 @@ export default function MealCard(props: MealCardProps) {
 
   const d = dish as any;
   const title = getSafeTitle(d, lang);
-  const mealType = d.meal_type || 'lunch';
-
-  // 严格使用匹配出的食物高清大图
-  const imageUrl = d.image_url && !d.image_url.includes('placeholder')
-    ? d.image_url
-    : matchCulinaryImage(d.title_zh || '', d.title_en || '', mealType);
-
+  // 直接使用菜品对象中精准配置的专属图片
+  const imageUrl = d.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
   const prepTime = d.prep_time || '20 mins';
-  const cuisine = typeof d.cuisine === 'object' ? (d.cuisine[lang] || 'Home Cooking') : (d.cuisine || 'Home Cooking');
+  const cuisine = d.cuisine || 'Home Cooking';
 
   const handleCardClick = () => {
     const fn = props.onSelect || props.onSelectDish || props.onClick;
