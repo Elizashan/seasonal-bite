@@ -16,14 +16,6 @@ interface MealCardProps {
   onRerollSlot?: (dayIdx: number, mealIdx: number) => void;
 }
 
-export function getSafeTitle(d: any, lang: Lang): string {
-  if (!d) return '';
-  if (lang === 'en') {
-    return d.title_en || (typeof d.title === 'object' ? d.title?.en : '') || 'Artisanal Dish';
-  }
-  return d.title_zh || (typeof d.title === 'object' ? (d.title?.zhTW || d.title?.zhCN || d.title?.zh) : '') || '時令料理';
-}
-
 export default function MealCard(props: MealCardProps) {
   const { dish, lang, viewMode, dayIdx, mealIdx } = props;
 
@@ -37,20 +29,18 @@ export default function MealCard(props: MealCardProps) {
     );
   }
 
-  const d = dish as any;
-  const title = getSafeTitle(d, lang);
+  const title = lang === 'en' ? (dish.title_en || 'Artisanal Dish') : (dish.title_zh || '時令料理');
+  // 直接渲染菜品绑定的精准专属图片，绝不再经过任何正则或模糊推导
+  const imageUrl = dish.image_url;
+  const prepTime = dish.prep_time || '20 mins';
+  const cuisine = dish.cuisine || 'Home Cooking';
 
-  // 关键：直接读取菜品绑定的真实美食图片，绝不经过任何正则模糊匹配
-  const imageUrl = d.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
-  const prepTime = d.prep_time || '20 mins';
-  const cuisine = typeof d.cuisine === 'object' ? (d.cuisine[lang] || 'Home Cooking') : (d.cuisine || 'Home Cooking');
-
-  const handleCardClick = () => {
+  const handleClick = () => {
     const fn = props.onSelect || props.onSelectDish || props.onClick;
     if (typeof fn === 'function') fn(dish);
   };
 
-  const handleRerollClick = (e: React.MouseEvent) => {
+  const handleReroll = (e: React.MouseEvent) => {
     e.stopPropagation();
     const fn = props.onReroll || props.onRerollSlot;
     if (typeof fn === 'function') fn(dayIdx, mealIdx);
@@ -58,13 +48,13 @@ export default function MealCard(props: MealCardProps) {
 
   return (
     <div
-      onClick={handleCardClick}
+      onClick={handleClick}
       className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-cream-200 bg-white shadow-sm transition hover:shadow-md cursor-pointer select-none"
     >
       <button
         type="button"
         title={tr('reroll', lang)}
-        onClick={handleRerollClick}
+        onClick={handleReroll}
         className="absolute right-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-forest-700 shadow backdrop-blur transition hover:bg-white active:scale-95"
       >
         <RotateCcw className="h-3.5 w-3.5" />
@@ -105,9 +95,9 @@ export default function MealCard(props: MealCardProps) {
           </span>
         </div>
 
-        {Array.isArray(d.dietary_tags) && d.dietary_tags.length > 0 && (
+        {Array.isArray(dish.dietary_tags) && dish.dietary_tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
-            {d.dietary_tags.slice(0, 2).map((tag: any, idx: number) => (
+            {dish.dietary_tags.slice(0, 2).map((tag: any, idx: number) => (
               <span
                 key={idx}
                 className="rounded-md bg-forest-50 px-1.5 py-0.5 text-[10px] font-medium text-forest-600 border border-forest-100"

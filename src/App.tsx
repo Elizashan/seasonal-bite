@@ -10,7 +10,7 @@ import type {
   WeekPlan,
 } from '@/types/recipe';
 import { tr } from '@/lib/i18n';
-import { generateShuffledWeeklyPlan } from '@/lib/verifiedRecipes';
+import { generateCleanWeeklyPlan } from '@/lib/recipeRegistry';
 import Navbar from '@/components/Navbar';
 import FilterBar from '@/components/FilterBar';
 import WeeklyGrid from '@/components/WeeklyGrid';
@@ -24,7 +24,7 @@ const VALID_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => {
     try {
-      return (localStorage.getItem('lang_clean_v4') as Lang) || 'zhTW';
+      return (localStorage.getItem('seasonal_lang_v5') as Lang) || 'zhTW';
     } catch {
       return 'zhTW';
     }
@@ -32,7 +32,7 @@ export default function App() {
 
   const [theme, setTheme] = useState<ThemeMode>(() => {
     try {
-      const saved = localStorage.getItem('theme_clean_v4');
+      const saved = localStorage.getItem('seasonal_theme_v5');
       return VALID_SEASONS.includes(saved as any) ? (saved as ThemeMode) : 'spring';
     } catch {
       return 'spring';
@@ -43,20 +43,19 @@ export default function App() {
   const [selectedRestrictions, setSelectedRestrictions] = useState<Set<RestrictionCode>>(new Set());
   const [viewMode, setViewMode] = useState<ViewMode>('photo');
 
-  // 清除所有历史旧版本的冲突缓存
+  // 1. 彻底清除导致旧图片错位的历史脏缓存
   useEffect(() => {
     try {
       localStorage.removeItem('seasonal_weekly_plan');
       localStorage.removeItem('seasonal_weekly_plan_v2');
+      localStorage.removeItem('seasonal_weekly_plan_v3');
+      localStorage.removeItem('seasonal_weekly_plan_v4');
       localStorage.removeItem('seasonal_plan_clean_v3');
     } catch {}
   }, []);
 
-  // 默认即时生成一组全周 21 餐零重复、图文对齐的菜单
-  const [plan, setPlan] = useState<WeekPlan>(() =>
-    generateShuffledWeeklyPlan(theme, lang, selectedRestrictions)
-  );
-
+  // 2. 初始化即载入一组 100% 精准配对的 21 餐时令菜单
+  const [plan, setPlan] = useState<WeekPlan>(() => generateCleanWeeklyPlan(theme, lang));
   const [hasGenerated, setHasGenerated] = useState<boolean>(true);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
@@ -64,28 +63,29 @@ export default function App() {
   const [showAICreate, setShowAICreate] = useState<boolean>(false);
 
   useEffect(() => {
-    try { localStorage.setItem('lang_clean_v4', lang); } catch {}
+    try { localStorage.setItem('seasonal_lang_v5', lang); } catch {}
   }, [lang]);
 
   useEffect(() => {
-    try { localStorage.setItem('theme_clean_v4', theme); } catch {}
+    try { localStorage.setItem('seasonal_theme_v5', theme); } catch {}
   }, [theme]);
 
-  // 点击生成按钮：100% 触发全新洗牌并强刷 UI
+  // 3. 点击“生成新鮮每週菜單”：100% 触发全新洗牌与即时 UI 重绘
   const handleGenerate = useCallback(() => {
     setIsGenerating(true);
     setTimeout(() => {
-      const freshPlan = generateShuffledWeeklyPlan(theme, lang, selectedRestrictions);
+      const freshPlan = generateCleanWeeklyPlan(theme, lang);
+      // 解构触发 React 深度渲染
       setPlan([...freshPlan.map((day) => [...day])]);
       setHasGenerated(true);
       setIsGenerating(false);
-    }, 200);
-  }, [theme, lang, selectedRestrictions]);
+    }, 180);
+  }, [theme, lang]);
 
-  // 单餐重抽
+  // 4. 单餐重抽（单卡片局部刷新）
   const handleRerollSlot = useCallback(
     (dayIdx: number, mealIdx: number) => {
-      const freshPlan = generateShuffledWeeklyPlan(theme, lang, selectedRestrictions);
+      const freshPlan = generateCleanWeeklyPlan(theme, lang);
       const candidate = freshPlan[dayIdx]?.[mealIdx];
       if (candidate) {
         setPlan((prev) => {
@@ -95,9 +95,10 @@ export default function App() {
         });
       }
     },
-    [theme, lang, selectedRestrictions]
+    [theme, lang]
   );
 
+  // 5. 自定义菜谱加入菜单
   const handleAddAIDish = useCallback(async (dish: Dish, dayIdx: number, mealIdx: number) => {
     const mealTypes = ['breakfast', 'lunch', 'dinner'] as const;
     const mealType = mealTypes[mealIdx];
@@ -139,6 +140,7 @@ export default function App() {
       <div className="relative z-10">
         <Navbar lang={lang} onLangChange={setLang} theme={theme} onThemeChange={setTheme} />
 
+        {/* 顶部标题区 */}
         <section className="relative overflow-hidden border-b border-cream-200 bg-gradient-to-b from-cream-100 to-cream-50">
           <div className="relative mx-auto max-w-7xl px-4 py-12 text-center sm:px-6 sm:py-16 lg:px-8">
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-forest-200 bg-forest-50 px-4 py-1.5">
@@ -159,6 +161,7 @@ export default function App() {
           </div>
         </section>
 
+        {/* 主体交互区 */}
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8">
             <FilterBar
@@ -198,6 +201,7 @@ export default function App() {
           />
         </main>
 
+        {/* 页脚 */}
         <footer className="border-t border-cream-200 bg-white py-8">
           <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
             <p className="font-serif text-sm text-timber-400">
@@ -206,6 +210,7 @@ export default function App() {
           </div>
         </footer>
 
+        {/* 详情与操作弹窗 */}
         {selectedDish && (
           <RecipeModal dish={selectedDish} lang={lang} onClose={() => setSelectedDish(null)} />
         )}
