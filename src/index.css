@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== Seasonal Theme CSS Variables ===== */
+/* Default: Spring Garden */
+:root, .theme-spring {
+  --c-bg: 250 252 248;
+  --c-bg-alt: 243 248 238;
+  --c-text: 31 72 50;
+  --c-text-muted: 95 153 123;
+  --c-text-faint: 156 198 172;
+  --c-border: 228 241 232;
+  --c-border-strong: 205 228 211;
+  --c-primary: 52 122 87;
+  --c-primary-light: 229 245 235;
+  --c-accent: 214 130 160;
+  --c-accent-hover: 190 110 140;
+  --c-accent-light: 251 240 245;
+  --c-overlay: 20 50 35;
+  --c-on-dark: 253 251 247;
+  --c-on-dark-muted: 249 245 238;
+  --bg-image: url('https://images.pexels.com/photos/37507631/pexels-photo-37507631.jpeg?auto=compress&cs=tinysrgb&w=1600');
+  --bg-overlay: 0.92;
+}
+
+/* Theme: Summer — dusty rose, pale sage, warm blush sand */
+.theme-summer {
+  --c-bg: 219 225 204;           /* #DBE1CC app background */
+  --c-bg-alt: 230 233 220;       /* subtle sage tint */
+  --c-text: 45 42 40;            /* #2D2A28 headings & body */
+  --c-text-muted: 100 95 92;
+  --c-text-faint: 160 155 150;
+  --c-border: 225 215 210;       /* light dusty rose border */
+  --c-border-strong: 212 178 169; /* #D4B2A9 active borders */
+  --c-primary: 212 178 169;      /* #D4B2A9 primary buttons & active */
+  --c-primary-light: 245 237 234;
+  --c-accent: 221 182 166;       /* #DDB6A6 badges & tags */
+  --c-accent-hover: 200 160 145;
+  --c-accent-light: 252 245 240;
+  --c-overlay: 45 42 40;
+  --c-on-dark: 253 251 247;
+  --c-on-dark-muted: 249 245 238;
+  --bg-image: url('https://images.pexels.com/photos/11679739/pexels-photo-11679739.jpeg?auto=compress&cs=tinysrgb&w=1600');
+  --bg-overlay: 0.90;
+}
+
+/* Theme: Autumn Harvest — warm, earthy, muted */
+.theme-autumn {
+  --c-bg: 252 247 236;
+  --c-bg-alt: 247 239 224;
+  --c-text: 67 40 18;
+  --c-text-muted: 146 64 14;
+  --c-text-faint: 200 168 108;
+  --c-border: 233 223 197;
+  --c-border-strong: 213 198 167;
+  --c-primary: 180 83 9;
+  --c-primary-light: 251 246 235;
+  --c-accent: 217 119 6;
+  --c-accent-hover: 194 65 12;
+  --c-accent-light: 255 251 235;
+  --c-overlay: 55 38 18;
+  --c-on-dark: 253 251 247;
+  --c-on-dark-muted: 249 245 238;
+  --bg-image: url('https://images.pexels.com/photos/25478458/pexels-photo-25478458.jpeg?auto=compress&cs=tinysrgb&w=1600');
+  --bg-overlay: 0.91;
+}
+
+/* Theme: Winter — frost snow, winter blush, frosted sage */
+.theme-winter {
+  --c-bg: 241 240 241;           /* #F1F0F1 app background */
+  --c-bg-alt: 246 244 243;       /* subtle frost tint */
+  --c-text: 43 46 42;            /* #2B2E2A headings & body */
+  --c-text-muted: 95 98 92;
+  --c-text-faint: 155 160 152;
+  --c-border: 220 225 218;       /* light frosted sage border */
+  --c-border-strong: 169 180 164; /* #A9B4A4 active borders */
+  --c-primary: 169 180 164;      /* #A9B4A4 primary buttons & active */
+  --c-primary-light: 237 242 235;
+  --c-accent: 239 216 207;       /* #EFD8CF badges & tags */
+  --c-accent-hover: 220 195 182;
+  --c-accent-light: 252 248 245;
+  --c-overlay: 43 46 42;
+  --c-on-dark: 253 251 247;
+  --c-on-dark-muted: 249 245 238;
+  --bg-image: url('https://images.pexels.com/photos/9974693/pexels-photo-9974693.jpeg?auto=compress&cs=tinysrgb&w=1600');
+  --bg-overlay: 0.93;
+}
+
+@layer base {
+  body {
+    @apply bg-cream-50 text-forest-700 font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Dark text on light primary/accent buttons (Summer & Winter) */
+  .theme-summer .bg-forest-500,
+  .theme-summer .bg-gold-500,
+  .theme-summer [class*='from-gold-500'],
+  .theme-winter .bg-forest-500,
+  .theme-winter .bg-gold-500,
+  .theme-winter [class*='from-gold-500'] {
+    color: rgb(var(--c-text));
+  }
+  .theme-summer .bg-forest-500 .text-cream-50,
+  .theme-summer .bg-forest-500 .text-cream-200,
+  .theme-winter .bg-forest-500 .text-cream-50,
+  .theme-winter .bg-forest-500 .text-cream-200 {
+    color: rgb(var(--c-text) / 0.7);
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-booklet,
+  .print-booklet * {
+    visibility: visible;
+  }
+  .print-booklet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .no-print {
+    display: none !important;
+  }
+}

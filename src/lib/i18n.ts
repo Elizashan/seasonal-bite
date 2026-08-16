@@ -1,0 +1,150 @@
+import type { Lang, LangLabel, RestrictionCode, ThemeLabel } from '@/types/recipe';
+
+export const LANGUAGES: LangLabel[] = [
+  { code: 'en', label: 'English', native: 'English' },
+  { code: 'zhTW', label: 'Traditional Chinese', native: '繁體中文' },
+  { code: 'zhCN', label: 'Simplified Chinese', native: '简体中文' },
+];
+
+type Dict = Record<string, Record<Lang, string>>;
+
+export const THEMES: ThemeLabel[] = [
+  { code: 'spring', key: 'themeSpring', emoji: 'Flower2' },
+  { code: 'summer', key: 'themeSummer', emoji: 'Sun' },
+  { code: 'autumn', key: 'themeAutumn', emoji: 'Wheat' },
+  { code: 'winter', key: 'themeWinter', emoji: 'Snowflake' },
+];
+
+export const t: Dict = {
+  brand: { en: 'SeasonalBite', zhTW: 'SeasonalBite', zhCN: 'SeasonalBite' },
+  brandSub: { en: '時·食', zhTW: '時·食', zhCN: '时·食' },
+  tagline: {
+    en: 'Farm-to-table seasonal menus, crafted fresh for your family.',
+    zhTW: '農場到餐桌的時令菜單，為您的家人新鮮打造。',
+    zhCN: '农场到餐桌的时令菜单，为您的家人新鲜打造。',
+  },
+  language: { en: 'Language', zhTW: '語言', zhCN: '语言' },
+  dietaryFocus: { en: 'Dietary Focus', zhTW: '飲食偏好', zhCN: '饮食偏好' },
+  toddlerFriendly: { en: 'Toddler-Friendly', zhTW: '幼兒友善', zhCN: '幼儿友好' },
+  toddlerDesc: { en: 'Mild & Soft', zhTW: '清淡軟嫩', zhCN: '清淡软嫩' },
+  lowSodium: { en: 'Low-Sodium', zhTW: '低鈉', zhCN: '低钠' },
+  seasonalProduce: { en: 'Seasonal Produce', zhTW: '時令食材', zhCN: '时令食材' },
+  highProtein: { en: 'High Protein', zhTW: '高蛋白', zhCN: '高蛋白' },
+  internationalFlavor: { en: 'International Flavor', zhTW: '國際風味', zhCN: '国际风味' },
+  photoView: { en: 'Photo Menu Cards', zhTW: '照片菜單卡', zhCN: '照片菜单卡' },
+  printView: { en: 'Print-Friendly Text', zhTW: '列印友善版', zhCN: '打印友好版' },
+  generate: { en: 'Generate Fresh Weekly Menu', zhTW: '生成新鮮每週菜單', zhCN: '生成新鲜每周菜单' },
+  generating: { en: 'Generating…', zhTW: '生成中…', zhCN: '生成中…' },
+  reroll: { en: 'Reroll Dish', zhTW: '換一道菜', zhCN: '换一道菜' },
+  export: { en: 'Export & Share Menu Booklet', zhTW: '匯出與分享菜單手冊', zhCN: '导出与分享菜单手册' },
+  yourWeek: { en: 'Your Week', zhTW: '你的這一週', zhCN: '你的这一周' },
+  ingredients: { en: 'Ingredients', zhTW: '食材', zhCN: '食材' },
+  steps: { en: 'Steps', zhTW: '步驟', zhCN: '步骤' },
+  cuisine: { en: 'Cuisine', zhTW: '菜系', zhCN: '菜系' },
+  prepTime: { en: 'Prep Time', zhTW: '準備時間', zhCN: '准备时间' },
+  minutes: { en: 'min', zhTW: '分鐘', zhCN: '分钟' },
+  close: { en: 'Close', zhTW: '關閉', zhCN: '关闭' },
+  shareVia: { en: 'Share via', zhTW: '分享至', zhCN: '分享至' },
+  downloadPdf: { en: 'Download PDF', zhTW: '下載 PDF', zhCN: '下载 PDF' },
+  booklet: { en: 'Menu Booklet', zhTW: '菜單手冊', zhCN: '菜单手册' },
+  weekOf: { en: 'Week of', zhTW: '本週', zhCN: '本周' },
+  day_mon: { en: 'Monday', zhTW: '星期一', zhCN: '星期一' },
+  day_tue: { en: 'Tuesday', zhTW: '星期二', zhCN: '星期二' },
+  day_wed: { en: 'Wednesday', zhTW: '星期三', zhCN: '星期三' },
+  day_thu: { en: 'Thursday', zhTW: '星期四', zhCN: '星期四' },
+  day_fri: { en: 'Friday', zhTW: '星期五', zhCN: '星期五' },
+  day_sat: { en: 'Saturday', zhTW: '星期六', zhCN: '星期六' },
+  day_sun: { en: 'Sunday', zhTW: '星期日', zhCN: '星期日' },
+  meal_breakfast: { en: 'Breakfast', zhTW: '早餐', zhCN: '早餐' },
+  meal_lunch: { en: 'Lunch', zhTW: '午餐', zhCN: '午餐' },
+  meal_dinner: { en: 'Dinner', zhTW: '晚餐', zhCN: '晚餐' },
+  loading: { en: 'Gathering fresh ingredients…', zhTW: '正在準備新鮮食材…', zhCN: '正在准备新鲜食材…' },
+  error: { en: 'We could not load the menu. Please try again.', zhTW: '無法載入菜單，請重試。', zhCN: '无法载入菜单，请重试。' },
+  emptySlot: { en: 'Not yet planned', zhTW: '尚未安排', zhCN: '尚未安排' },
+  filters: { en: 'Preferences', zhTW: '偏好設定', zhCN: '偏好设置' },
+  allDishes: { en: 'All Dishes', zhTW: '所有菜色', zhCN: '所有菜色' },
+  generating_menu: { en: 'Crafting your seasonal menu…', zhTW: '正在打造您的時令菜單…', zhCN: '正在打造您的时令菜单…' },
+  grams: { en: 'g', zhTW: '克', zhCN: '克' },
+  noDishesMatch: {
+    en: 'No dishes match your filters. Try removing some preferences.',
+    zhTW: '沒有菜色符合您的篩選條件，請嘗試移除部分偏好。',
+    zhCN: '没有菜色符合您的筛选条件，请尝试移除部分偏好。',
+  },
+  artisanalMenu: { en: 'Artisanal Farm Menu', zhTW: '手作農場菜單', zhCN: '手工农场菜单' },
+  freshFromFarm: { en: 'Fresh from the farm to your table', zhTW: '從農場新鮮直送到您的餐桌', zhCN: '从农场新鲜直送到您的餐桌' },
+  copyLink: { en: 'Copy Link', zhTW: '複製連結', zhCN: '复制链接' },
+  copied: { en: 'Copied!', zhTW: '已複製！', zhCN: '已复制！' },
+  theme: { en: 'Theme', zhTW: '主題', zhCN: '主题' },
+  themeSpring: { en: 'Spring Garden', zhTW: '春之花園', zhCN: '春之花园' },
+  themeSummer: { en: 'Summer Farm', zhTW: '夏日農莊', zhCN: '夏日农庄' },
+  themeAutumn: { en: 'Autumn Harvest', zhTW: '秋之豐收', zhCN: '秋之丰收' },
+  themeWinter: { en: 'Winter Greenhouse', zhTW: '冬之溫室', zhCN: '冬之温室' },
+  quickVideo: { en: '1-Min Quick Video Guide', zhTW: '1分鐘快速影片指南', zhCN: '1分钟快速影片指南' },
+  shareDish: { en: 'Share This Dish', zhTW: '分享這道菜', zhCN: '分享这道菜' },
+  downloadImage: { en: 'Download Image', zhTW: '下載圖片', zhCN: '下载图片' },
+  dishCard: { en: 'Dish Card', zhTW: '菜色卡片', zhCN: '菜色卡片' },
+  recipeBooklet: { en: 'Weekly Recipe Booklet', zhTW: '每週食譜手冊', zhCN: '每周食谱手册' },
+  preparation: { en: 'Preparation', zhTW: '做法', zhCN: '做法' },
+  downloadSummary: { en: 'Weekly Summary Grid', zhTW: '每週摘要表格', zhCN: '每周摘要表格' },
+  downloadBooklet: { en: 'Full Recipe Booklet', zhTW: '完整食譜手冊', zhCN: '完整食谱手册' },
+  summaryDesc: { en: 'Single-page fridge-friendly 7-day overview', zhTW: '單頁冰箱友善7天概覽', zhCN: '单页冰箱友好7天概览' },
+  bookletDesc: { en: 'Overview grid + full recipe cards with photos', zhTW: '概覽表格 + 含照片的完整食譜卡', zhCN: '概览表格 + 含照片的完整食谱卡' },
+  aiCreateDish: { en: "Can't Find Your Meal? Create with AI", zhTW: '找不到你的菜色？用 AI 創造', zhCN: '找不到你的菜色？用 AI 创造' },
+  aiModalTitle: { en: 'Create a Custom Dish', zhTW: '建立自訂菜色', zhCN: '建立自定义菜色' },
+  aiModalDesc: { en: "Tell us what you'd like to cook, and we'll create a recipe card for you.", zhTW: '告訴我們您想做什麼菜，我們會為您建立一張食譜卡。', zhCN: '告诉我们您想做什么菜，我们会为您建立一张食谱卡。' },
+  aiDishName: { en: 'Dish Name', zhTW: '菜色名稱', zhCN: '菜色名称' },
+  aiDishNamePlaceholder: { en: 'e.g., Tomato Scrambled Eggs', zhTW: '例如：番茄炒蛋', zhCN: '例如：番茄炒蛋' },
+  aiCuisine: { en: 'Cuisine Style', zhTW: '菜系風格', zhCN: '菜系风格' },
+  aiToddlerFriendly: { en: 'Mild & Toddler-Friendly', zhTW: '清淡幼兒友善', zhCN: '清淡幼儿友好' },
+  aiAddToPlan: { en: 'Add to Weekly Plan', zhTW: '加入每週計畫', zhCN: '加入每周计划' },
+  aiSelectDay: { en: 'Select Day', zhTW: '選擇日期', zhCN: '选择日期' },
+  aiSelectMeal: { en: 'Select Meal', zhTW: '選擇餐點', zhCN: '选择餐点' },
+  aiGenerating: { en: 'Creating your dish…', zhTW: '正在建立菜色…', zhCN: '正在建立菜色…' },
+  aiEnterName: { en: 'Please enter a dish name', zhTW: '請輸入菜色名稱', zhCN: '请输入菜色名称' },
+  aiCustomDish: { en: 'Custom AI Dish', zhTW: 'AI 自訂菜色', zhCN: 'AI 自定义菜色' },
+  restShellfish: { en: 'Shellfish-Free', zhTW: '無甲殼類', zhCN: '无甲壳类' },
+  restFish: { en: 'Fish-Free', zhTW: '無魚類', zhCN: '无鱼类' },
+  restGluten: { en: 'Gluten-Free', zhTW: '無麩質', zhCN: '无麸质' },
+  restDairy: { en: 'Dairy-Free', zhTW: '無乳製品', zhCN: '无乳制品' },
+  restPeanut: { en: 'Peanut-Free', zhTW: '無花生', zhCN: '无花生' },
+  restTreeNut: { en: 'Tree Nut-Free', zhTW: '無堅果', zhCN: '无坚果' },
+  restSoy: { en: 'Soy-Free', zhTW: '無大豆', zhCN: '无大豆' },
+  restEgg: { en: 'Egg-Free', zhTW: '無蛋', zhCN: '无蛋' },
+  restSesame: { en: 'Sesame-Free', zhTW: '無芝麻', zhCN: '无芝麻' },
+  restMustard: { en: 'Mustard-Free', zhTW: '無芥末', zhCN: '无芥末' },
+  restSulfite: { en: 'Sulfite-Free', zhTW: '無亞硫酸鹽', zhCN: '无亚硫酸盐' },
+  restNightshade: { en: 'Nightshade-Free', zhTW: '無茄科食材', zhCN: '无茄科食材' },
+  restHeading: { en: 'Allergen Restrictions', zhTW: '過敏原限制', zhCN: '过敏原限制' },
+  restDefault: { en: 'No Diet Restrictions', zhTW: '無飲食限制', zhCN: '无饮食限制' },
+  restCount: { en: 'Restrictions', zhTW: '項限制', zhCN: '项限制' },
+  restSelected: { en: 'Selected', zhTW: '已選', zhCN: '已选' },
+  restClearAll: { en: 'Clear all', zhTW: '清除全部', zhCN: '清除全部' },
+};
+
+export function tr(key: string, lang: Lang): string {
+  const entry = t[key];
+  if (!entry) return key;
+  return entry[lang] ?? entry.en;
+}
+
+export const DAY_KEYS = ['day_mon', 'day_tue', 'day_wed', 'day_thu', 'day_fri', 'day_sat', 'day_sun'] as const;
+export const MEAL_KEYS = ['meal_breakfast', 'meal_lunch', 'meal_dinner'] as const;
+
+export const RESTRICTIONS: { code: RestrictionCode; key: string }[] = [
+  { code: 'shellfish_free', key: 'restShellfish' },
+  { code: 'fish_free', key: 'restFish' },
+  { code: 'gluten_free', key: 'restGluten' },
+  { code: 'dairy_free', key: 'restDairy' },
+  { code: 'peanut_free', key: 'restPeanut' },
+  { code: 'tree_nut_free', key: 'restTreeNut' },
+  { code: 'soy_free', key: 'restSoy' },
+  { code: 'egg_free', key: 'restEgg' },
+  { code: 'sesame_free', key: 'restSesame' },
+  { code: 'mustard_free', key: 'restMustard' },
+  { code: 'sulfite_free', key: 'restSulfite' },
+  { code: 'nightshade_free', key: 'restNightshade' },
+];
+
+export const CUISINE_OPTIONS = [
+  'Chinese', 'Mediterranean', 'Italian', 'Korean', 'French', 'American', 'Middle Eastern', 'Japanese', 'Other',
+] as const;
