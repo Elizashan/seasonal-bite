@@ -21,6 +21,110 @@ import Background from '@/components/Background';
 
 const VALID_SEASONS = ['spring', 'summer', 'autumn', 'winter'] as const;
 
+// ============================================================
+// 🆕 AI 菜单生成函数（替换 generateCleanWeeklyPlan）
+// ============================================================
+const generateWeeklyMenuWithAI = async (
+  theme: ThemeMode,
+  lang: Lang,  // ✅ 改为 Lang 类型
+  restrictions: Set<RestrictionCode> = new Set()  // ✅ 使用正确的类型
+): Promise<WeekPlan> => {
+  const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '你的备用Key';
+
+  const languageInstruction =
+    lang === 'en'
+      ? 'Return all dish names and ingredients in English.'
+      : 'Return dish names in Traditional Chinese (zh-TW), ingredients in Traditional Chinese with English in parentheses.';
+
+  const restrictionText =
+    restrictions.size > 0
+      ? `Dietary restrictions: ${Array.from(restrictions).join(', ')}. Ensure all dishes comply.`
+      : 'No dietary restrictions.';
+
+  const prompt = `You are a professional chef. Generate a complete 7-day meal plan (breakfast, lunch, dinner for each day) for a family. Theme: ${theme} season.
+
+${restrictionText}
+
+For each dish, provide:
+- name_en: English name
+- name_zh: Chinese name (Traditional)
+- meal_type: "breakfast", "lunch", or "dinner"
+- cuisine: cuisine style (e.g., Cantonese, Italian, French)
+- prep_time: estimated time (e.g., "20 mins")
+- calories: approximate calories (e.g., "350 kcal")
+- ingredients: array of {name: string, amount: string with unit}
+- instructions: array of strings (step-by-step, 4-6 steps)
+- chef_tips: one practical tip for home cooks
+
+Return ONLY valid JSON in this exact structure:
+{
+  "week": [
+    [ // Day 0 (Monday)
+      { "name_en": "...", "name_zh": "...", "meal_type": "breakfast", ... },
+      { "name_en": "...", "name_zh": "...", "meal_type": "lunch", ... },
+      { "name_en": "...", "name_zh": "...", "meal_type": "dinner", ... }
+    ],
+    // ... repeat for days 1-6
+  ]
+}
+
+${languageInstruction}`;
+
+  try {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/interactions?key=' + API_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.6-flash',
+        input: prompt,
+        response_format: [{ type: 'text', mime_type: 'application/json' }],
+      }),
+    });
+
+    const data = await response.json();
+    const modelOutput = data.steps?.find((step: any) => step.type === 'model_output');
+    if (!modelOutput || !modelOutput.content) throw new Error('No model_output');
+    const text = modelOutput.content[0]?.text;
+    if (!text) throw new Error('No text');
+    const parsed = JSON.parse(text);
+
+    // 转换为与当前 WeekPlan 兼容的格式
+    return parsed.week.map((day: any[]) =>
+      day.map((dish: any) => ({
+        id: `ai-${Date.now()}-${Math.random()}`,
+        slug: `ai-${Date.now()}-${Math.random()}`,
+        title: {
+          en: dish.name_en,
+          zhCN: dish.name_zh,
+          zhTW: dish.name_zh,
+          zh: dish.name_zh,
+        },
+        title_zh: dish.name_zh,
+        title_en: dish.name_en,
+        season: theme,
+        meal_type: dish.meal_type || 'dinner',
+        cuisine: dish.cuisine || 'Home Cooking',
+        prep_time: dish.prep_time || '20 mins',
+        calories: dish.calories || '350 kcal',
+        image_url: `https://source.unsplash.com/featured/400x300/?${encodeURIComponent(dish.name_en)}`,
+        dietary_tags: Array.isArray(dish.dietary_tags) ? dish.dietary_tags : [],
+        ingredients: dish.ingredients || [],
+        instructions: dish.instructions
+          ? dish.instructions.map((step: string, idx: number) => ({
+              step: idx + 1,
+              text: step,
+            }))
+          : [],
+        chef_tips: dish.chef_tips || 'Enjoy your meal!',
+      }))
+    );
+  } catch (error) {
+    console.error('AI 生成失败，使用静态数据', error);
+    // 降级方案：如果 AI 失败，使用原来的静态数据
+    return generateCleanWeeklyPlan(theme, lang);
+  }
+};
+
 export default function App() {
   const [lang, setLang] = useState<Lang>(() => {
     try {
@@ -54,10 +158,31 @@ export default function App() {
     } catch {}
   }, []);
 
-  // 2. 初始化即载入一组 100% 精准配对的 21 餐时令菜单
-  const [plan, setPlan] = useState<WeekPlan>(() => generateCleanWeeklyPlan(theme, lang));
-  const [hasGenerated, setHasGenerated] = useState<boolean>(true);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  // 🆕 2. 初始化状态：空计划，加载中
+  const [plan, setPlan] = useState<WeekPlan>([]);
+  const [hasGenerated, setHasGenerated] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(true); // 初始为 true
+
+  // 🆕 3. 初始加载 AI 菜单（依赖主题、语言、限制）
+  useEffect(() => {
+    const loadInitialMenu = async () => {
+      setIsGenerating(true);
+      try {
+        const newPlan = await generateWeeklyMenuWithAI(theme, lang, selectedRestrictions);
+        setPlan(newPlan);
+        setHasGenerated(true);
+      } catch (error) {
+        console.error('Initial load failed:', error);
+        // 降级到静态数据
+        setPlan(generateCleanWeeklyPlan(theme, lang));
+        setHasGenerated(true);
+      } finally {
+        setIsGenerating(false);
+      }
+    };
+    loadInitialMenu();
+  }, [theme, lang, selectedRestrictions]); // 当主题、语言或限制变化时重新加载
+
   const [selectedDish, setSelectedDish] = useState<Dish | null>(null);
   const [showExport, setShowExport] = useState<boolean>(false);
   const [showAICreate, setShowAICreate] = useState<boolean>(false);
@@ -70,35 +195,58 @@ export default function App() {
     try { localStorage.setItem('seasonal_theme_v5', theme); } catch {}
   }, [theme]);
 
-  // 3. 点击“生成新鮮每週菜單”：100% 触发全新洗牌与即时 UI 重绘
-  const handleGenerate = useCallback(() => {
+  // 🆕 4. 点击“生成新鮮每週菜單”：调用 AI 重新生成
+  const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
-    setTimeout(() => {
-      const freshPlan = generateCleanWeeklyPlan(theme, lang);
+    try {
+      const newPlan = await generateWeeklyMenuWithAI(theme, lang, selectedRestrictions);
       // 解构触发 React 深度渲染
-      setPlan([...freshPlan.map((day) => [...day])]);
+      setPlan([...newPlan.map((day) => [...day])]);
       setHasGenerated(true);
+    } catch (error) {
+      console.error('Generate failed:', error);
+      // 降级
+      setPlan(generateCleanWeeklyPlan(theme, lang).map(day => [...day]));
+      setHasGenerated(true);
+    } finally {
       setIsGenerating(false);
-    }, 180);
-  }, [theme, lang]);
+    }
+  }, [theme, lang, selectedRestrictions]);
 
-  // 4. 单餐重抽（单卡片局部刷新）
+  // 🆕 5. 单餐重抽（重新生成整个计划并替换对应餐）
   const handleRerollSlot = useCallback(
-    (dayIdx: number, mealIdx: number) => {
-      const freshPlan = generateCleanWeeklyPlan(theme, lang);
-      const candidate = freshPlan[dayIdx]?.[mealIdx];
-      if (candidate) {
-        setPlan((prev) => {
-          const next = prev.map((day) => [...day]);
-          if (next[dayIdx]) next[dayIdx][mealIdx] = candidate;
-          return next;
-        });
+    async (dayIdx: number, mealIdx: number) => {
+      setIsGenerating(true);
+      try {
+        const newPlan = await generateWeeklyMenuWithAI(theme, lang, selectedRestrictions);
+        const candidate = newPlan[dayIdx]?.[mealIdx];
+        if (candidate) {
+          setPlan((prev) => {
+            const next = prev.map((day) => [...day]);
+            if (next[dayIdx]) next[dayIdx][mealIdx] = candidate;
+            return next;
+          });
+        }
+      } catch (error) {
+        console.error('Reroll failed:', error);
+        // 降级：使用静态数据
+        const fallback = generateCleanWeeklyPlan(theme, lang);
+        const candidate = fallback[dayIdx]?.[mealIdx];
+        if (candidate) {
+          setPlan((prev) => {
+            const next = prev.map((day) => [...day]);
+            if (next[dayIdx]) next[dayIdx][mealIdx] = candidate;
+            return next;
+          });
+        }
+      } finally {
+        setIsGenerating(false);
       }
     },
-    [theme, lang]
+    [theme, lang, selectedRestrictions]
   );
 
-  // 5. 自定义菜谱加入菜单
+  // 6. 自定义菜谱加入菜单（未变）
   const handleAddAIDish = useCallback(async (dish: Dish, dayIdx: number, mealIdx: number) => {
     const mealTypes = ['breakfast', 'lunch', 'dinner'] as const;
     const mealType = mealTypes[mealIdx];

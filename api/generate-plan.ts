@@ -1,17 +1,50 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// ===== 允许跨域的前端域名列表 =====
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',          // 本地 Vite 开发
+  'http://localhost:3000',          // 其他本地端口
+  'https://your-frontend.vercel.app', // 🔁 替换为你的真实生产域名
+];
+
+// ===== 备选模型（按优先级） =====
 const CANDIDATE_MODELS = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+  // ---------- 1. CORS 头设置 ----------
+  const origin = req.headers.origin || '';
+  if (ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
+  // ---------- 2. 处理预检请求 ----------
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // ---------- 3. 只接受 POST ----------
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  // ---------- 4. 获取 API Key ----------
   const apiKey = (process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '').trim();
-  if (!apiKey) return res.status(500).json({ error: 'API Key missing on Vercel' });
+  if (!apiKey) {
+    console.error('❌ API Key missing in environment');
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
 
+  // ---------- 5. 解析请求体 ----------
   const { season = 'spring', lang = 'zhTW', restrictions = [] } = req.body || {};
   const isZh = lang !== 'en';
-  const restrictionStr = Array.isArray(restrictions) && restrictions.length > 0 ? restrictions.join(', ') : 'None';
+  const restrictionStr = Array.isArray(restrictions) && restrictions.length > 0
+    ? restrictions.join(', ')
+    : 'None';
 
+  // ---------- 6. 构建 Prompt ----------
   const prompt = `You are a Michelin-star chef and clinical nutritionist.
 Generate a complete, personalized 7-day seasonal meal plan (7 days * 3 meals = 21 UNIQUE dishes) for ${season.toUpperCase()} season.
 Strict Dietary Restrictions: Must STRICTLY satisfy: ${restrictionStr}.
@@ -38,6 +71,7 @@ Return ONLY a raw JSON array of 21 objects:
   }
 ]`;
 
+  // ---------- 7. 尝试调用 Gemini（多模型备用） ----------
   for (const model of CANDIDATE_MODELS) {
     try {
       const response = await fetch(
@@ -61,10 +95,14 @@ Return ONLY a raw JSON array of 21 objects:
           return res.status(200).json({ success: true, dishes });
         }
       }
-    } catch {
+    } catch (error) {
+      // 单个模型失败，继续尝试下一个
+      console.warn(`⚠️ Model ${model} failed:`, error);
       continue;
     }
   }
 
+  // ---------- 8. 所有模型都失败 ----------
+  console.error('❌ All AI models failed to generate valid response');
   return res.status(502).json({ error: 'AI generation failed' });
 }
